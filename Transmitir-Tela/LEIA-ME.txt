@@ -1,0 +1,45 @@
+﻿TRANSMITIR A SUA TELA PARA A TV
+================================
+
+O que faz
+  Mostra a tela do seu computador na TV, pela rede, usando a maquina-ponte
+  (ligada a TV por HDMI). Nao usa Win + K. Nao envia audio.
+
+COMO USAR (todo dia)
+  1. Na maquina-ponte, abra o atalho "Receber tela" (se ainda nao estiver aberto).
+  2. No seu computador, de duplo clique em "Transmitir-Tela.bat".
+  3. Escolha a tela e a qualidade (ou so Enter para o padrao).
+  4. Sua tela aparece na TV. Para parar, pressione Enter na janela preta.
+     A TV volta sozinha para a tela "Aguardando transmissao" (nao fica congelada).
+     (Para fechar o receptor na maquina-ponte, pare a transmissao e pressione Esc na tela de espera.)
+
+  Uma pessoa por vez: se duas transmitirem juntas, as imagens se misturam.
+
+PRIMEIRA VEZ NO SEU COMPUTADOR
+  - O programa pede para instalar o FFmpeg: responda S. Precisa de internet.
+  - A ponte aceita computadores da faixa de rede liberada pelo responsavel. Nao precisa liberar
+    o seu IP um por um. Se a imagem nao aparecer e o seu IP estiver fora dessa faixa,
+    peca ao responsavel para libera-lo (veja "Para o responsavel").
+
+SE NAO FUNCIONAR
+  - Nada aparece na TV: o "Receber tela" esta aberto na maquina-ponte? (Quando ninguem transmite,
+    a TV mostra a tela "Aguardando transmissao", isso e normal.) O IP do seu PC esta na faixa liberada?
+  - Tela errada na TV: pare e rode de novo escolhendo outro numero de tela.
+  - Imagem com falhas ou travando: use a qualidade 3 (Leve) ou ligue o cabo de rede.
+  - A transmissao nao inicia: tente outra tela ou a qualidade Leve.
+
+PARA O RESPONSAVEL (administrador da maquina-ponte)
+  A ponte libera a faixa definida na instalacao (FaixaLiberada). Para liberar outro IP ou faixa
+  (rodar no PowerShell da maquina-ponte como administrador):
+    .\receber-tela-ponte.ps1 -AdicionarIp 10.0.0.25
+  Abrir o receptor sozinho quando o Windows iniciar:
+    .\receber-tela-ponte.ps1 -IniciarComWindows
+  Remover tudo:
+    .\receber-tela-ponte.ps1 -Remover
+
+SEGURANCA
+  A ponte so aceita video dos IPs liberados. O video vai pela rede interna
+  sem criptografia; evite transmitir dados sensiveis em rede nao confiavel.
+  Em caso de duvida, consulte o TI.
+
+

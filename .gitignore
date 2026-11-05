@@ -1,0 +1,21 @@
+# Dependencias e build
+node_modules/
+dist/
+
+# Configuracao e dados LOCAIS (IPs, nomes de maquina, temas e logos reais) - nunca versionar
+config.local.ps1
+tema.local.json
+logos/
+*.local.*
+.mcp.json
+.claude/
+
+# Pacotes gerados
+*.zip
+
+# Logs, temporarios e segredos
+*.log
+.env
+.env.*
+*.pem
+*.key

@@ -1,0 +1,14 @@
+{
+  "subtitulo": "SALA DE REUNIOES",
+  "nome": "Bem-vindo",
+  "corFundo1": "#06122B",
+  "corFundo2": "#10347A",
+  "corDestaque": "#6699FF",
+  "logo": "",
+  "logoSecundario": "",
+  "passos": [
+    "Abra o Transmitir-Tela no PC",
+    "Escolha a tela e a qualidade",
+    "Sua tela aparece aqui na TV"
+  ]
+}

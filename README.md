@@ -67,7 +67,7 @@ Projetos: `projetos` com `nome`, `percentual` (0-100), `responsavel`, `prazo` e 
 Com `tarefas` no `pauta.json`, a tela de espera ganha uma coluna fixa na lateral direita; agenda e projetos continuam alternando
 no centro. Sem agenda/projetos, as tarefas ocupam a coluna da direita sozinhas. Cada tarefa tem `titulo`, `responsavel`, `prazo`
 (texto livre, ex. `14/11`), `status` (`a fazer`, `em andamento`, `bloqueada`, `concluída`) e, opcional, `prioridade: "alta"`.
-Ordem na tela: bloqueadas, em andamento, a fazer, concluídas (esmaecidas); mostra 6 e avisa quantas ficaram de fora.
+Ordem na tela: bloqueadas, em andamento, a fazer. **As concluídas ficam ocultas** (a barra de progresso ainda conta com elas); para mostrá-las, ponha `"mostrarConcluidas": true` no `pauta.json`. Mostra 6 por vez e troca de página a cada 10 s.
 O título do painel vem de `tituloTarefas`. Exemplo completo em `pauta.exemplo.json`.
 
 ### Tarefas ligadas ao Jira Cloud

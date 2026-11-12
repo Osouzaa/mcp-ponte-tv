@@ -183,7 +183,7 @@ function Carregar-Pauta {
         try { $atualJira = [datetime]::Parse("$($jj.atualizado)", [Globalization.CultureInfo]::InvariantCulture); $tars = $tj } catch { if ($tj.Count -gt 0) { $tars = $tj } }
       } catch { }
     }
-    $script:dadosPauta = @{ titulo = "$($j.titulo)"; tituloProjetos = "$($j.tituloProjetos)"; tituloTarefas = $tituloTar; atualizado = $atualJira; aviso = "$($j.aviso)"; itens = @($lista | Sort-Object inicio); projetos = $projs; tarefas = $tars }
+    $script:dadosPauta = @{ titulo = "$($j.titulo)"; tituloProjetos = "$($j.tituloProjetos)"; tituloTarefas = $tituloTar; atualizado = $atualJira; mostrarConcluidas = [bool]$j.mostrarConcluidas; aviso = "$($j.aviso)"; itens = @($lista | Sort-Object inicio); projetos = $projs; tarefas = $tars }
     $script:pautaMtime = $mt
   } catch { }
 }
@@ -244,7 +244,9 @@ function Desenhar($g, $w, $h, $t) {
   $s = $h / 1080.0
   Carregar-Pauta
   $agora = Agora-Hora
-  $nTarefas = 0; if ($script:dadosPauta) { $nTarefas = @($script:dadosPauta.tarefas).Count }
+  # so tarefas em aberto (bloqueada / em andamento / a fazer); concluidas ficam ocultas, salvo "mostrarConcluidas": true no pauta.json
+  $nTarefas = 0; $mostrarOk = $false
+  if ($script:dadosPauta) { $mostrarOk = [bool]$script:dadosPauta.mostrarConcluidas; $nTarefas = @(@($script:dadosPauta.tarefas) | Where-Object { $mostrarOk -or $_.cod -ne 'ok' }).Count }
   $temTar = $true   # o card de tarefas fica sempre na lateral; sem tarefas mostra "Sem tarefas"
   # layout: centro limpo (nome, relogio, data) + barra estreita de tarefas na direita + UMA faixa que alterna agenda/aviso/projetos
   $L = $w; $tx0 = $w * 0.675; $tw0 = $w * 0.31
@@ -403,23 +405,25 @@ function Desenhar($g, $w, $h, $t) {
 
   # painel de tarefas da equipe (lateral direita, sempre visivel): status, responsavel e prazo
   if ($temTar -and $nTarefas -gt 0) {
-    $todasT = @($script:dadosPauta.tarefas)
+    $todasT = @($script:dadosPauta.tarefas)   # todas (para a barra de progresso)
+    $listaT = @($todasT | Where-Object { $mostrarOk -or $_.cod -ne 'ok' })   # as que aparecem na lista
     $maxT = 6
     # muitas tarefas: 6 por pagina, troca a cada 10 s
-    $nPag = [int][Math]::Ceiling($todasT.Count / [double]$maxT)
+    $nPag = [int][Math]::Ceiling($listaT.Count / [double]$maxT)
     $pagT = 0
     if ($nPag -gt 1) { $pagT = [int][Math]::Floor($t / 10) % $nPag; if ($Previa -and $Aba -match '^\d+$') { $pagT = [int]$Aba % $nPag } }
-    $vt = @($todasT | Select-Object -Skip ($pagT * $maxT) -First $maxT)
+    $vt = @($listaT | Select-Object -Skip ($pagT * $maxT) -First $maxT)
     $extra = 0; if ($nPag -gt 1) { $extra = 1 }
     $qOk = @($todasT | Where-Object { $_.cod -eq 'ok' }).Count
     $qAnd = @($todasT | Where-Object { $_.cod -eq 'and' }).Count
     $qBq = @($todasT | Where-Object { $_.cod -eq 'bloq' }).Count
+    $qFz = @($todasT | Where-Object { $_.cod -eq 'fazer' }).Count
     $txP = $tx0; $twP = $tw0; $tyP = 100 * $s
     $rowT = 92 * $s; $hdrT = 142 * $s; $rodT = 14 * $s; $atuJ = $script:dadosPauta.atualizado; if ($extra -gt 0 -or $atuJ) { $rodT = 52 * $s }
     $nLin = $vt.Count; if ($nPag -gt 1) { $nLin = $maxT }   # altura fixa quando ha varias paginas (o card nao pula)
     $thP = $hdrT + $nLin * $rowT + $rodT
     $titT = 'TAREFAS'; if ($script:dadosPauta.tituloTarefas) { $titT = $script:dadosPauta.tituloTarefas.ToUpper() }
-    Painel $g $txP $tyP $twP $thP $s $titT ([string]$qOk + '/' + [string]$todasT.Count)
+    Painel $g $txP $tyP $twP $thP $s $titT $(if ($mostrarOk) { [string]$qOk + '/' + [string]$todasT.Count } else { [string]$listaT.Count })
     # barra de progresso geral (concluidas / total) e legenda
     $bx = $txP + 34 * $s; $bw = $twP - 68 * $s; $by = $tyP + 92 * $s; $bh = 12 * $s
     $trk = Caminho-Arredondado $bx $by $bw $bh ($bh / 2)
@@ -431,7 +435,7 @@ function Desenhar($g, $w, $h, $t) {
     $fMt = New-Object System.Drawing.Font('Segoe UI', [single](22 * $s), [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
     $fCh = New-Object System.Drawing.Font('Segoe UI Semibold', [single](16 * $s), [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
     $iA = [string][char]0x00ED
-    $leg = [string]$qAnd + ' em andamento  -  ' + [string]$qOk + ' conclu' + $iA + 'das'; if ($qBq -gt 0) { $leg += '  -  ' + [string]$qBq + ' bloq.' }
+    $leg = [string]$qAnd + ' em andamento  -  ' + [string]$qFz + ' a fazer'; if ($qBq -gt 0) { $leg += '  -  ' + [string]$qBq + ' bloq.' }; if ($mostrarOk) { $leg = [string]$qAnd + ' em andamento  -  ' + [string]$qOk + ' conclu' + $iA + 'das'; if ($qBq -gt 0) { $leg += '  -  ' + [string]$qBq + ' bloq.' } }
     Texto $g $leg $fLg (Cor '#FFFFFF' 170) $bx ($by + 12 * $s) $bw (28 * $s) 'Near'
     for ($i = 0; $i -lt $vt.Count; $i++) {
       $tk = $vt[$i]; $ry = $tyP + $hdrT + $i * $rowT

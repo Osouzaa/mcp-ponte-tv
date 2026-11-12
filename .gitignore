@@ -19,3 +19,6 @@ logos/
 .env.*
 *.pem
 *.key
+
+# Pacote de distribuicao gerado (contem config local)
+Pacote/

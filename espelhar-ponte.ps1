@@ -19,12 +19,12 @@ $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Env
 
 $vf = "hwdownload,format=bgra,scale=${Largura}:${Altura}:force_original_aspect_ratio=decrease:flags=bicubic,format=nv12"
 if ($Encoder -eq "qsv") {
-  $enc = @("-c:v","h264_qsv","-preset","veryfast","-look_ahead","0","-async_depth","1","-bf","0","-profile:v","high")
+  $enc = @("-c:v","h264_qsv","-preset","veryfast","-look_ahead","0","-async_depth","1","-bf","0","-profile:v","high","-forced_idr","1","-repeat_pps","1")
 } else {
-  $enc = @("-c:v","libx264","-preset","ultrafast","-tune","zerolatency","-bf","0")
+  $enc = @("-c:v","libx264","-preset","ultrafast","-tune","zerolatency","-bf","0","-x264-params","repeat-headers=1")
 }
 $ff = @("-hide_banner","-loglevel","error","-fflags","nobuffer","-f","lavfi","-i","ddagrab=output_idx=$($Tela-1):framerate=${Fps}:draw_mouse=1,$vf") `
-    + $enc + @("-b:v",$Bitrate,"-maxrate",$Bitrate,"-bufsize","1M","-g",$Fps,"-pix_fmt","nv12",
+    + $enc + @("-b:v",$Bitrate,"-maxrate",$Bitrate,"-bufsize","1M","-g",[Math]::Max(10,[int]($Fps/2)),"-pix_fmt","nv12",
     "-flush_packets","1","-muxdelay","0","-muxpreload","0","-pat_period","0.2","-f","mpegts","udp://${Destino}:${Porta}?pkt_size=1316")
 
 $p = Start-Process ffmpeg -ArgumentList $ff -PassThru -WindowStyle Minimized

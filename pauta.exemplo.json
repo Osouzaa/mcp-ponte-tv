@@ -1,0 +1,26 @@
+﻿{
+  "titulo": "Agenda de hoje",
+  "tituloProjetos": "Projetos em andamento",
+  "tituloTarefas": "Tarefas",
+  "aviso": "Aviso opcional: aparece numa caixa amarela abaixo da agenda.",
+  "itens": [
+    { "inicio": "08:30", "fim": "09:30", "titulo": "Alinhamento semanal da equipe", "local": "Sala 2" },
+    { "inicio": "10:00", "fim": "11:00", "titulo": "Planejamento do trimestre", "local": "Sala de reuni\u00f5es 1" },
+    { "data": "2026-12-01", "inicio": "14:00", "fim": "15:30", "titulo": "Item de um dia especifico", "local": "Audit\u00f3rio" }
+  ],
+  "projetos": [
+    { "nome": "Projeto exemplo A", "percentual": 78, "responsavel": "Equipe A", "prazo": "30/11", "situacao": "no prazo" },
+    { "nome": "Projeto exemplo B", "percentual": 45, "responsavel": "Equipe B", "prazo": "15/12", "situacao": "aten\u00e7\u00e3o" },
+    { "nome": "Projeto exemplo C", "percentual": 30, "responsavel": "Equipe C", "prazo": "10/11", "situacao": "atrasado" },
+    { "nome": "Projeto exemplo D", "percentual": 100, "responsavel": "Equipe D", "prazo": "31/10", "situacao": "conclu\u00eddo" }
+  ],
+  "tarefas": [
+    { "titulo": "Fechar relatório mensal", "responsavel": "Ana", "prazo": "14/11", "status": "em andamento", "prioridade": "alta" },
+    { "titulo": "Atualizar planilha de custos", "responsavel": "Bruno", "prazo": "15/11", "status": "em andamento" },
+    { "titulo": "Aguardando aprovação do contrato", "responsavel": "Carla", "prazo": "18/11", "status": "bloqueada", "prioridade": "alta" },
+    { "titulo": "Preparar apresentação do trimestre", "responsavel": "Diego", "prazo": "20/11", "status": "a fazer" },
+    { "titulo": "Revisar manual do processo", "responsavel": "Equipe B", "prazo": "25/11", "status": "a fazer" },
+    { "titulo": "Reunião de alinhamento", "responsavel": "Ana", "prazo": "11/11", "status": "concluída" },
+    { "titulo": "Backup dos arquivos", "responsavel": "Bruno", "prazo": "10/11", "status": "concluída" }
+  ]
+}

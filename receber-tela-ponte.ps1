@@ -483,13 +483,14 @@ function Desenhar($g, $w, $h, $t) {
   $passos = @($tema.passos)
   $n = [Math]::Min(3, $passos.Count)
   if ($n -gt 0) {
-    $x0 = $w * 0.05; $cw = ($w * 0.90) / $n; $yp = $h - 128 * $s
+    $x0 = 0; $cw = $w / $n; $yp = $h - 128 * $s   # colunas iguais na largura toda; cada passo (bolinha + texto) centralizado na sua coluna
     for ($i = 0; $i -lt $n; $i++) {
-      $cxp = $x0 + $i * $cw
+      $tw1 = [Math]::Ceiling($g.MeasureString([string]$passos[$i], $fP).Width)
+      $cxp = $x0 + $i * $cw + ($cw - (62 * $s + $tw1)) / 2
       $cb = New-Object System.Drawing.SolidBrush (Cor $tema.corDestaque 235)
       $g.FillEllipse($cb, [single]($cxp), [single]($yp + 8 * $s), [single](46 * $s), [single](46 * $s)); $cb.Dispose()
       Texto $g ([string]($i + 1)) $fN (Cor $tema.corFundo1 255) $cxp ($yp + 8 * $s) (46 * $s) (46 * $s) 'Center'
-      Texto $g ([string]$passos[$i]) $fP (Cor '#FFFFFF' 205) ($cxp + 62 * $s) $yp ($cw - 80 * $s) (62 * $s) 'Near'
+      Texto $g ([string]$passos[$i]) $fP (Cor '#FFFFFF' 205) ($cxp + 62 * $s) $yp ($tw1 + 20 * $s) (62 * $s) 'Near'
     }
   }
   # segundo logo (versao branca, ex.: instituicao) no canto inferior esquerdo

@@ -135,15 +135,17 @@ $jiraArq = Join-Path $pasta 'jira-tarefas.json'
 if ($Jira) { $jiraArq = $Jira }
 $script:dadosPauta = $null; $script:pautaMtime = $null; $script:pautaChk = [datetime]::MinValue
 function Agora-Hora { if ($Hora) { return [datetime]::ParseExact($Hora, 'HH:mm', $null) }; return (Get-Date) }
-# tarefas da equipe: status = a fazer | em andamento | bloqueada | concluida (ordem de exibicao: bloqueada, andamento, a fazer, concluida)
+# tarefas da equipe: status = a fazer | em andamento | aguardando validacao | pausada | bloqueada | concluida (ordem de exibicao: bloqueada, andamento, validacao, a fazer, pausada, concluida)
 function Converter-Tarefas($lista) {
   $tars = @(); $ix = 0
   foreach ($tk in @($lista)) {
     if (-not $tk.titulo) { continue }
     $st = "$($tk.status)".ToLower()
-    $ord = 2; $cod = 'fazer'
-    if ($st -like 'conclu*' -or $st -like 'feit*' -or $st -like 'pronto*') { $ord = 3; $cod = 'ok' }
+    $ord = 3; $cod = 'fazer'
+    if ($st -like 'conclu*' -or $st -like 'feit*' -or $st -like 'pronto*') { $ord = 5; $cod = 'ok' }
     elseif ($st -like 'bloq*' -or $st -like 'impedi*') { $ord = 0; $cod = 'bloq' }
+    elseif ($st -like '*valida*') { $ord = 2; $cod = 'val' }
+    elseif ($st -like 'paus*') { $ord = 4; $cod = 'paus' }
     elseif ($st -like '*andamento*' -or $st -like 'fazendo*') { $ord = 1; $cod = 'and' }
     $alta = 0; if ("$($tk.prioridade)".ToLower() -like 'alt*') { $alta = 1 }
     $tars += [pscustomobject]@{ titulo = "$($tk.titulo)"; chave = "$($tk.chave)"; resp = "$($tk.responsavel)"; prazo = "$($tk.prazo)"; cod = $cod; ord = $ord; alta = $alta; idx = $ix }
@@ -210,15 +212,18 @@ function Painel($g, $x, $y, $pw, $ph, $s, $titulo, $direita) {
 }
 # icone de status da tarefa (sem depender de fonte): aberto, meio cheio, check, alerta
 function Icone-Tarefa($g, $cod, $cx, $cy, $r, $s) {
-  $cor = '#9FB4E6'; if ($cod -eq 'ok') { $cor = '#36CC99' } elseif ($cod -eq 'and') { $cor = '#FFC400' } elseif ($cod -eq 'bloq') { $cor = '#FF6B6B' }
+  $cor = '#9FB4E6'; if ($cod -eq 'ok') { $cor = '#36CC99' } elseif ($cod -eq 'and') { $cor = '#FFC400' } elseif ($cod -eq 'bloq') { $cor = '#FF6B6B' } elseif ($cod -eq 'val') { $cor = '#B388FF' } elseif ($cod -eq 'paus') { $cor = '#FFA040' }
   $x = [single]($cx - $r); $y = [single]($cy - $r); $d = [single](2 * $r)
   $pen = New-Object System.Drawing.Pen (Cor $cor 255), ([single](3 * $s))
   $br = New-Object System.Drawing.SolidBrush (Cor $cor 255)
-  if ($cod -eq 'ok' -or $cod -eq 'bloq') {
+  if ($cod -eq 'ok' -or $cod -eq 'bloq' -or $cod -eq 'paus') {
     $g.FillEllipse($br, $x, $y, $d, $d)
     $dk = New-Object System.Drawing.Pen (Cor '#06122B' 255), ([single](3.4 * $s)); $dk.StartCap = 'Round'; $dk.EndCap = 'Round'; $dk.LineJoin = 'Round'
     if ($cod -eq 'ok') {
       $g.DrawLines($dk, [System.Drawing.PointF[]]@((New-Object System.Drawing.PointF([single]($cx - $r * 0.42), [single]($cy + $r * 0.02))), (New-Object System.Drawing.PointF([single]($cx - $r * 0.1), [single]($cy + $r * 0.36))), (New-Object System.Drawing.PointF([single]($cx + $r * 0.46), [single]($cy - $r * 0.32)))))
+    } elseif ($cod -eq 'paus') {
+      $g.DrawLine($dk, [single]($cx - $r * 0.26), [single]($cy - $r * 0.4), [single]($cx - $r * 0.26), [single]($cy + $r * 0.4))
+      $g.DrawLine($dk, [single]($cx + $r * 0.26), [single]($cy - $r * 0.4), [single]($cx + $r * 0.26), [single]($cy + $r * 0.4))
     } else {
       $g.DrawLine($dk, [single]$cx, [single]($cy - $r * 0.48), [single]$cx, [single]($cy + $r * 0.08))
       $g.FillEllipse((New-Object System.Drawing.SolidBrush (Cor '#06122B' 255)), [single]($cx - 2.4 * $s), [single]($cy + $r * 0.30), [single](4.8 * $s), [single](4.8 * $s))
@@ -227,6 +232,7 @@ function Icone-Tarefa($g, $cod, $cx, $cy, $r, $s) {
   } else {
     $g.DrawEllipse($pen, $x, $y, $d, $d)
     if ($cod -eq 'and') { $g.FillPie($br, $x, $y, $d, $d, 90, 180) }
+    if ($cod -eq 'val') { $g.FillPie($br, $x, $y, $d, $d, 270, 270) }   # aguardando validacao: tres quartos cheio
   }
   $pen.Dispose(); $br.Dispose()
 }
@@ -424,6 +430,8 @@ function Desenhar($g, $w, $h, $t) {
     $extra = 0; if ($nPag -gt 1) { $extra = 1 }
     $qOk = @($todasT | Where-Object { $_.cod -eq 'ok' }).Count
     $qAnd = @($todasT | Where-Object { $_.cod -eq 'and' }).Count
+    $qVl = @($todasT | Where-Object { $_.cod -eq 'val' }).Count
+    $qPz = @($todasT | Where-Object { $_.cod -eq 'paus' }).Count
     $qBq = @($todasT | Where-Object { $_.cod -eq 'bloq' }).Count
     $qFz = @($todasT | Where-Object { $_.cod -eq 'fazer' }).Count
     $txP = $tx0; $twP = $tw0; $tyP = $tyCard
@@ -438,12 +446,17 @@ function Desenhar($g, $w, $h, $t) {
     $trb = New-Object System.Drawing.SolidBrush (Cor '#FFFFFF' 40); $g.FillPath($trb, $trk); $trb.Dispose(); $trk.Dispose()
     $fwT = $bw * ($qOk / [double]$todasT.Count)
     if ($fwT -gt 2) { $fpT = Caminho-Arredondado $bx $by $fwT $bh ([Math]::Min($bh / 2, $fwT / 2)); $fbT = New-Object System.Drawing.SolidBrush (Cor '#36CC99' 255); $g.FillPath($fbT, $fpT); $fbT.Dispose(); $fpT.Dispose() }
-    $fLg = New-Object System.Drawing.Font('Segoe UI', [single](21 * $s), [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+    $fLg = New-Object System.Drawing.Font('Segoe UI', [single](19 * $s), [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
     $fTt = New-Object System.Drawing.Font('Segoe UI Semibold', [single](27 * $s), [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
     $fMt = New-Object System.Drawing.Font('Segoe UI', [single](22 * $s), [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
     $fCh = New-Object System.Drawing.Font('Segoe UI Semibold', [single](16 * $s), [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
     $iA = [string][char]0x00ED
-    $leg = [string]$qAnd + ' em andamento  -  ' + [string]$qFz + ' a fazer'; if ($qBq -gt 0) { $leg += '  -  ' + [string]$qBq + ' bloq.' }; if ($mostrarOk) { $leg = [string]$qAnd + ' em andamento  -  ' + [string]$qOk + ' conclu' + $iA + 'das'; if ($qBq -gt 0) { $leg += '  -  ' + [string]$qBq + ' bloq.' } }
+    $pl = @([string]$qAnd + ' andamento')
+    if ($qVl -gt 0) { $pl += [string]$qVl + ' valida' + [string][char]0x00E7 + $aTil + 'o' }
+    if ($mostrarOk) { $pl += [string]$qOk + ' conclu' + $iA + 'das' } else { $pl += [string]$qFz + ' a fazer' }
+    if ($qPz -gt 0) { $pl += [string]$qPz + ' pausada' + $(if ($qPz -gt 1) { 's' } else { '' }) }
+    if ($qBq -gt 0) { $pl += [string]$qBq + ' bloq.' }
+    $leg = $pl -join ('  ' + [string][char]0x00B7 + '  ')
     Texto $g $leg $fLg (Cor '#FFFFFF' 170) $bx ($by + 12 * $s) $bw (28 * $s) 'Near'
     for ($i = 0; $i -lt $vt.Count; $i++) {
       $tk = $vt[$i]; $ry = $tyP + $hdrT + $i * $rowT

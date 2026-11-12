@@ -70,6 +70,8 @@ function Buscar-Uma {
     $labels = @($f.labels) | ForEach-Object { "$_".ToLower() }
     if ($cat -eq 'done') { $st = 'concluida' }
     elseif ($nomeSt -match '(?i)bloq|impedi|blocked|imped' -or $labels -contains 'bloqueada' -or $labels -contains 'blocked') { $st = 'bloqueada' }
+    elseif ($nomeSt -match '(?i)valida') { $st = 'aguardando validacao' }
+    elseif ($nomeSt -match '(?i)paus') { $st = 'pausada' }
     elseif ($cat -eq 'indeterminate') { $st = 'em andamento' }
     else { $st = 'a fazer' }
     $prio = ''; if ("$($f.priority.name)" -match '(?i)^(highest|high|alta|altissima|critica|critical|blocker)') { $prio = 'alta' }

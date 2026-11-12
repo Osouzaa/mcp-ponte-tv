@@ -7,13 +7,23 @@
 $Destino = ""
 $Porta   = 5004             # porta UDP da ponte
 $cfg = Join-Path $PSScriptRoot 'config.local.ps1'
+if (-not (Test-Path $cfg)) { $cfg2 = Join-Path (Split-Path $PSScriptRoot) 'config.local.ps1'; if (Test-Path $cfg2) { $cfg = $cfg2 } }   # tambem procura na pasta de cima
 if (Test-Path $cfg) { . $cfg; if ($Ponte) { $Destino = $Ponte } }
 # ----------------------------------------------------------
 
 $ErrorActionPreference = "Stop"
 function Atualizar-Path { $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User') }
 function Pausa-Sair($m) { Write-Host ""; Write-Host $m -ForegroundColor Yellow; Read-Host "Pressione Enter para fechar" | Out-Null; exit 1 }
-if (-not $Destino) { Pausa-Sair "IP da ponte nao configurado. Crie o arquivo config.local.ps1 ao lado deste script (veja config.exemplo.ps1)." }
+if (-not $Destino) {
+  # sem config.local.ps1: pergunta o IP da ponte e salva para as proximas vezes
+  Clear-Host
+  Write-Host "O IP da maquina-ponte (a que esta ligada na TV) ainda nao foi configurado neste computador." -ForegroundColor Yellow
+  Write-Host "Peca o IP ao responsavel pela ponte (ex.: 192.0.2.10)."
+  $ipDig = (Read-Host "Digite o IP da ponte").Trim()
+  if ($ipDig -notmatch '^\d{1,3}(\.\d{1,3}){3}$') { Pausa-Sair "IP vazio ou invalido. Tente de novo com o IP no formato 192.0.2.10." }
+  $Destino = $ipDig
+  try { Set-Content -Path (Join-Path $PSScriptRoot 'config.local.ps1') -Value ('$Ponte = "' + $ipDig + '"') -Encoding ASCII; Write-Host "IP salvo. Nas proximas vezes nao precisa digitar." -ForegroundColor Green; Start-Sleep 1 } catch { Write-Host "Nao consegui salvar o IP (vai pedir de novo na proxima vez)." -ForegroundColor DarkGray }
+}
 
 Clear-Host
 Write-Host "=== Transmitir minha tela para a TV ===" -ForegroundColor Cyan

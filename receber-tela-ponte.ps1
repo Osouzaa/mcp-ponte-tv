@@ -249,8 +249,13 @@ function Desenhar($g, $w, $h, $t) {
   if ($script:dadosPauta) { $mostrarOk = [bool]$script:dadosPauta.mostrarConcluidas; $nTarefas = @(@($script:dadosPauta.tarefas) | Where-Object { $mostrarOk -or $_.cod -ne 'ok' }).Count }
   $temTar = $true   # o card de tarefas fica sempre na lateral; sem tarefas mostra "Sem tarefas"
   # layout: centro limpo (nome, relogio, data) + barra estreita de tarefas na direita + UMA faixa que alterna agenda/aviso/projetos
-  $L = $w; $tx0 = $w * 0.675; $tw0 = $w * 0.31
-  if ($temTar) { $L = $w * 0.655 }
+  # margem lateral unica (5%) = mesma dos passos; card termina na margem direita; coluna central centralizada entre a margem esquerda e o card
+  $tw0 = $w * 0.29; $tx0 = $w * 0.95 - $tw0; $L = $w
+  if ($temTar) { $L = $tx0 + $w * 0.02 }
+  # altura do card de tarefas (calculada antes, para centralizar o bloco da esquerda no mesmo eixo vertical do card)
+  $tyCard = 100 * $s
+  $cardH = (142 + 6 * 92 + 52) * $s   # altura fixa (6 linhas): o card nao muda de tamanho e acompanha a coluna da esquerda
+  $cardCy = $tyCard + $cardH / 2
   $estreito = $false
   $g.SmoothingMode = 'AntiAlias'
   $g.TextRenderingHint = 'AntiAliasGridFit'
@@ -289,6 +294,8 @@ function Desenhar($g, $w, $h, $t) {
     $wb = New-Object System.Drawing.SolidBrush (Cor '#FFFFFF' 245); $g.FillPath($wb, $cp); $wb.Dispose(); $cp.Dispose()
     $g.DrawImage($logoImg, [single]($cx2 + 35 * $s), [single]($cy2 + 20 * $s), [single]$lw, [single]$lh)
     $y0 = $cy2 + $ch2 + 25 * $s
+  } else {
+    $y0 = ($tyCard + $tyCard + $cardH - 62 * $s) / 2 - 252 * $s   # bloco nome/relogio/data (505 de altura) centralizado com o card de tarefas
   }
 
   # nome / subtitulo
@@ -310,7 +317,7 @@ function Desenhar($g, $w, $h, $t) {
 
   # faixa "Aguardando transmissao" com ponto pulsante
   $fAg = New-Object System.Drawing.Font('Segoe UI Semibold', [single](30 * $s), [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
-  $pw = 520 * $s; ; $ph = 62 * $s; $px = ($L - $pw) / 2; $py = $h - 205 * $s; if (-not $logoImg) { $py = 44 * $s }
+  $pw = 520 * $s; ; $ph = 62 * $s; $px = ($L - $pw) / 2; $py = $h - 205 * $s; if (-not $logoImg) { $py = $tyCard + $cardH - $ph }   # sem logo: faixa no lugar da antiga faixa de aviso/agenda (abaixo da data)
   $path = New-Object System.Drawing.Drawing2D.GraphicsPath
   $rr = $ph / 2
   $path.AddArc([single]$px, [single]$py, [single]$ph, [single]$ph, 90, 180)
@@ -334,7 +341,8 @@ function Desenhar($g, $w, $h, $t) {
     if ($script:dadosPauta.aviso) { $pgs += , @('aviso', $script:dadosPauta.aviso) }
     foreach ($pj0 in @($script:dadosPauta.projetos | Select-Object -First 6)) { $pgs += , @('proj', $pj0) }
   }
-  if ($pgs.Count -gt 0) {
+  $mostrarFaixa = $false   # a faixa de aviso/agenda/projetos foi substituida pela faixa "Aguardando transmissao"
+  if ($mostrarFaixa -and $pgs.Count -gt 0) {
     $ciclo = 7.0
     $ip = [int][Math]::Floor($t / $ciclo) % $pgs.Count; if ($Aba -match '^\d+$') { $ip = [int]$Aba % $pgs.Count }
     $pg = $pgs[$ip]; $tq = $t % $ciclo
@@ -385,7 +393,7 @@ function Desenhar($g, $w, $h, $t) {
 
   # sem tarefas: card com mensagem (e a hora da ultima atualizacao, para saber que a sincronizacao esta viva)
   if ($temTar -and $nTarefas -eq 0) {
-    $txP = $tx0; $twP = $tw0; $tyP = 100 * $s; $thP = 370 * $s
+    $txP = $tx0; $twP = $tw0; $tyP = $tyCard; $thP = $cardH
     $titT = 'TAREFAS'; if ($script:dadosPauta -and $script:dadosPauta.tituloTarefas) { $titT = $script:dadosPauta.tituloTarefas.ToUpper() }
     Painel $g $txP $tyP $twP $thP $s $titT $null
     Icone-Tarefa $g 'ok' ($txP + $twP / 2) ($tyP + 150 * $s) (34 * $s) $s
@@ -418,10 +426,10 @@ function Desenhar($g, $w, $h, $t) {
     $qAnd = @($todasT | Where-Object { $_.cod -eq 'and' }).Count
     $qBq = @($todasT | Where-Object { $_.cod -eq 'bloq' }).Count
     $qFz = @($todasT | Where-Object { $_.cod -eq 'fazer' }).Count
-    $txP = $tx0; $twP = $tw0; $tyP = 100 * $s
+    $txP = $tx0; $twP = $tw0; $tyP = $tyCard
     $rowT = 92 * $s; $hdrT = 142 * $s; $rodT = 14 * $s; $atuJ = $script:dadosPauta.atualizado; if ($extra -gt 0 -or $atuJ) { $rodT = 52 * $s }
     $nLin = $vt.Count; if ($nPag -gt 1) { $nLin = $maxT }   # altura fixa quando ha varias paginas (o card nao pula)
-    $thP = $hdrT + $nLin * $rowT + $rodT
+    $thP = $cardH
     $titT = 'TAREFAS'; if ($script:dadosPauta.tituloTarefas) { $titT = $script:dadosPauta.tituloTarefas.ToUpper() }
     Painel $g $txP $tyP $twP $thP $s $titT $(if ($mostrarOk) { [string]$qOk + '/' + [string]$todasT.Count } else { [string]$listaT.Count })
     # barra de progresso geral (concluidas / total) e legenda
@@ -491,7 +499,7 @@ function Desenhar($g, $w, $h, $t) {
   }
   # IP da maquina (apoio a suporte)
   $fIp = New-Object System.Drawing.Font('Segoe UI', [single](20 * $s), [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
-  Texto $g ('Ponte: ' + $meuIp) $fIp (Cor '#FFFFFF' 110) 0 ($h - 44 * $s) ($w - 40 * $s) (30 * $s) 'Far'
+  Texto $g ('Ponte: ' + $meuIp) $fIp (Cor '#FFFFFF' 110) 0 ($h - 44 * $s) ($w * 0.95) (30 * $s) 'Far'
   foreach ($f in $fSub, $fNome, $fRel, $fData, $fAg, $fN, $fP, $fIp) { $f.Dispose() }
 }
 
